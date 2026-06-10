@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Graph Insights — SIT Challenge</title>
+<style>
+  :root {
+    --bg: #0e1116;
+    --panel: #161b22;
+    --panel-2: #1c2230;
+    --line: #2a3140;
+    --ink: #e6edf3;
+    --muted: #8b97a7;
+    --accent: #5ad1a8;      /* mint — the signature color */
+    --accent-dim: #2f6f5a;
+    --warn: #f0a04b;
+    --err: #f25f5c;
+    --tree: #79b8ff;
+    --mono: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace;
+    --sans: "Inter", system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background:
+      radial-gradient(1200px 600px at 80% -10%, #15241f 0%, transparent 60%),
+      var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    min-height: 100vh;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 40px 20px 80px; }
+
+  header { margin-bottom: 28px; }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  h1 {
+    font-size: clamp(28px, 5vw, 42px);
+    margin: 0 0 6px;
+    letter-spacing: -0.02em;
+    font-weight: 700;
+  }
+  .sub { color: var(--muted); font-size: 15px; max-width: 60ch; }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 20px;
+  }
+  label.field-label {
+    display: block;
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+  }
+  textarea {
+    width: 100%;
+    min-height: 150px;
+    resize: vertical;
+    background: var(--bg);
+    color: var(--ink);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px;
+    font-family: var(--mono);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  textarea:focus { outline: 2px solid var(--accent-dim); border-color: var(--accent); }
+
+  .row { display: flex; gap: 12px; align-items: center; margin-top: 14px; flex-wrap: wrap; }
+  button {
+    background: var(--accent);
+    color: #06231b;
+    border: none;
+    border-radius: 10px;
+    padding: 11px 22px;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    font-family: var(--sans);
+    transition: transform 0.08s ease, filter 0.15s ease;
+  }
+  button:hover { filter: brightness(1.08); }
+  button:active { transform: translateY(1px); }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  button.ghost {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--line);
+  }
+  button.ghost:hover { color: var(--ink); border-color: var(--accent-dim); }
+
+  .endpoint-note { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-left: auto; }
+
+  /* status / error */
+  .alert {
+    margin-top: 18px;
+    padding: 14px 16px;
+    border-radius: 10px;
+    font-size: 14px;
+    display: none;
+  }
+  .alert.show { display: block; }
+  .alert.error { background: rgba(242,95,92,0.12); border: 1px solid var(--err); color: #ffb3b1; }
+  .alert.error strong { color: var(--err); }
+
+  /* results */
+  #results { margin-top: 28px; display: none; }
+  #results.show { display: block; }
+
+  .identity {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+    margin-bottom: 22px;
+  }
+  .id-cell {
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+  .id-cell .k { font-family: var(--mono); font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+  .id-cell .v { font-size: 14px; margin-top: 4px; word-break: break-all; }
+
+  .section-title {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 26px 0 12px;
+  }
+
+  /* summary chips */
+  .summary { display: flex; gap: 12px; flex-wrap: wrap; }
+  .chip {
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 8px 16px;
+    font-size: 13px;
+  }
+  .chip b { color: var(--accent); font-family: var(--mono); }
+
+  /* hierarchy cards */
+  .hier {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+  .hier.cyclic { border-left-color: var(--warn); }
+  .hier-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+  .hier-head .root-badge {
+    font-family: var(--mono); font-weight: 700;
+    background: var(--accent-dim); color: var(--ink);
+    width: 28px; height: 28px; display: grid; place-items: center;
+    border-radius: 7px;
+  }
+  .hier.cyclic .root-badge { background: #5a3e1e; }
+  .meta { font-size: 12px; color: var(--muted); font-family: var(--mono); }
+  .cycle-tag { color: var(--warn); font-weight: 700; font-size: 12px; font-family: var(--mono); }
+
+  /* tree renderer */
+  .tree { font-family: var(--mono); font-size: 14px; }
+  .tree ul { list-style: none; margin: 0; padding-left: 20px; border-left: 1px dashed var(--line); }
+  .tree > ul { padding-left: 4px; border-left: none; }
+  .tree li { position: relative; padding: 2px 0; }
+  .node-dot { color: var(--tree); }
+  .leaf .node-dot { color: var(--accent); }
+
+  footer { margin-top: 40px; color: var(--muted); font-size: 12px; font-family: var(--mono); text-align: center; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="eyebrow">SIT · Full Stack Challenge</div>
+      <h1>Graph Insights</h1>
+      <p class="sub">Enter directed edges in <code>X-&gt;Y</code> form (one per line or comma-separated). The API builds hierarchies, detects cycles, and reports structural insights.</p>
+    </header>
+
+    <div class="card">
+      <label class="field-label" for="edges">Edges</label>
+      <textarea id="edges" spellcheck="false" placeholder="A->B
+A->C
+B->D
+X->Y
+Y->Z
+Z->X"></textarea>
+      <div class="row">
+        <button id="submit">Analyze graph</button>
+        <button id="example" class="ghost">Load example</button>
+        <button id="clear" class="ghost">Clear</button>
+        <span class="endpoint-note" id="endpointNote"></span>
+      </div>
+    </div>
+
+    <div id="alert" class="alert error"></div>
+
+    <div id="results">
+      <div class="section-title">Identity</div>
+      <div class="identity" id="identity"></div>
+
+      <div class="section-title">Summary</div>
+      <div class="summary" id="summary"></div>
+
+      <div class="section-title">Hierarchies</div>
+      <div id="hierarchies"></div>
+
+      <div class="section-title">Invalid entries</div>
+      <div id="invalid" class="meta"></div>
+
+      <div class="section-title">Duplicate edges</div>
+      <div id="duplicates" class="meta"></div>
+    </div>
+
+    <footer>POST <span id="footEndpoint"></span> · CORS enabled</footer>
+  </div>
+
+<script>
+  // ---- Configure your API base URL here ---------------------------------
+  // When deployed, set this to your hosted backend, e.g.
+  //   "https://your-api.onrender.com"
+  // Leave as "" to call a same-origin /api/graph (useful for local testing
+  // or when frontend + API share a host like Vercel).
+  const API_BASE = "";
+  const ENDPOINT = (API_BASE || "") + "/api/graph";
+  // -----------------------------------------------------------------------
+
+  document.getElementById("endpointNote").textContent = "→ POST " + ENDPOINT;
+  document.getElementById("footEndpoint").textContent = ENDPOINT;
+
+  const EXAMPLE = [
+    "A->B","A->C","B->D","C->E","E->F",
+    "X->Y","Y->Z","Z->X",
+    "P->Q","Q->R",
+    "G->H","G->H","G->I",
+    "hello","1->2","A->"
+  ].join("\n");
+
+  const $ = (id) => document.getElementById(id);
+
+  function parseEdges(text) {
+    // Split on newlines and commas, keep raw tokens (server trims & validates).
+    return text
+      .split(/[\n,]/)
+      .map((s) => s.replace(/\s+$/,'').replace(/^\s+/,''))
+      .filter((s) => s.length > 0);
+  }
+
+  function showError(msg) {
+    const a = $("alert");
+    a.innerHTML = "<strong>Request failed.</strong> " + msg;
+    a.classList.add("show");
+    $("results").classList.remove("show");
+  }
+  function clearError() { $("alert").classList.remove("show"); }
+
+  function renderTree(treeObj) {
+    // treeObj is like { A: { B: {...}, C: {...} } }
+    const build = (obj) => {
+      const keys = Object.keys(obj);
+      if (keys.length === 0) return "";
+      let html = "<ul>";
+      for (const k of keys) {
+        const childHtml = build(obj[k]);
+        const isLeaf = childHtml === "";
+        html += `<li class="${isLeaf ? 'leaf' : ''}"><span class="node-dot">${isLeaf ? '●' : '▸'}</span> ${k}${childHtml}</li>`;
+      }
+      html += "</ul>";
+      return html;
+    };
+    return `<div class="tree">${build(treeObj)}</div>`;
+  }
+
+  function render(data) {
+    clearError();
+    $("results").classList.add("show");
+
+    // Identity
+    $("identity").innerHTML = `
+      <div class="id-cell"><div class="k">user_id</div><div class="v">${data.user_id ?? "—"}</div></div>
+      <div class="id-cell"><div class="k">email_id</div><div class="v">${data.email_id ?? "—"}</div></div>
+      <div class="id-cell"><div class="k">enrollment</div><div class="v">${data.enrollment_number ?? "—"}</div></div>`;
+
+    // Summary
+    const s = data.summary || {};
+    $("summary").innerHTML = `
+      <div class="chip">Trees <b>${s.total_trees ?? 0}</b></div>
+      <div class="chip">Cycles <b>${s.total_cycles ?? 0}</b></div>
+      <div class="chip">Largest root <b>${s.largest_tree_root || "—"}</b></div>`;
+
+    // Hierarchies
+    const hWrap = $("hierarchies");
+    hWrap.innerHTML = "";
+    (data.hierarchies || []).forEach((h) => {
+      const cyclic = h.has_cycle === true;
+      const div = document.createElement("div");
+      div.className = "hier" + (cyclic ? " cyclic" : "");
+      const meta = cyclic
+        ? `<span class="cycle-tag">⟳ cycle detected</span>`
+        : `<span class="meta">depth: ${h.depth}</span>`;
+      div.innerHTML = `
+        <div class="hier-head">
+          <span class="root-badge">${h.root}</span>
+          <strong>root ${h.root}</strong>
+          ${meta}
+        </div>
+        ${cyclic ? '<div class="meta">tree: {} (omitted for cyclic group)</div>' : renderTree(h.tree)}`;
+      hWrap.appendChild(div);
+    });
+    if ((data.hierarchies || []).length === 0) {
+      hWrap.innerHTML = '<div class="meta">No hierarchies.</div>';
+    }
+
+    // Invalid + duplicates
+    const inv = data.invalid_entries || [];
+    $("invalid").textContent = inv.length ? inv.map(JSON.stringify).join("  ") : "none";
+    const dup = data.duplicate_edges || [];
+    $("duplicates").textContent = dup.length ? dup.join("  ") : "none";
+  }
+
+  async function submit() {
+    clearError();
+    const edges = parseEdges($("edges").value);
+    const btn = $("submit");
+    btn.disabled = true;
+    btn.textContent = "Analyzing…";
+    try {
+      const res = await fetch(ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ edges }),
+      });
+      if (!res.ok) {
+        let detail = "Server responded with status " + res.status + ".";
+        try { const j = await res.json(); if (j.error) detail += " " + j.error; } catch (_) {}
+        showError(detail);
+        return;
+      }
+      const data = await res.json();
+      render(data);
+    } catch (e) {
+      showError("Could not reach the API. Check that the backend is live and CORS is enabled. (" + e.message + ")");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Analyze graph";
+    }
+  }
+
+  $("submit").addEventListener("click", submit);
+  $("example").addEventListener("click", () => { $("edges").value = EXAMPLE; });
+  $("clear").addEventListener("click", () => { $("edges").value = ""; $("results").classList.remove("show"); clearError(); });
+</script>
+</body>
+</html>

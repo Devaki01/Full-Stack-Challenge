@@ -12,7 +12,7 @@
     --line: #2a3140;
     --ink: #e6edf3;
     --muted: #8b97a7;
-    --accent: #5ad1a8;      /* mint — the signature color */
+    --accent: #5ad1a8;      
     --accent-dim: #2f6f5a;
     --warn: #f0a04b;
     --err: #f25f5c;
@@ -105,7 +105,6 @@
 
   .endpoint-note { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-left: auto; }
 
-  /* status / error */
   .alert {
     margin-top: 18px;
     padding: 14px 16px;
@@ -117,7 +116,6 @@
   .alert.error { background: rgba(242,95,92,0.12); border: 1px solid var(--err); color: #ffb3b1; }
   .alert.error strong { color: var(--err); }
 
-  /* results */
   #results { margin-top: 28px; display: none; }
   #results.show { display: block; }
 
@@ -145,7 +143,6 @@
     margin: 26px 0 12px;
   }
 
-  /* summary chips */
   .summary { display: flex; gap: 12px; flex-wrap: wrap; }
   .chip {
     background: var(--panel-2);
@@ -156,7 +153,6 @@
   }
   .chip b { color: var(--accent); font-family: var(--mono); }
 
-  /* hierarchy cards */
   .hier {
     background: var(--panel);
     border: 1px solid var(--line);
@@ -177,7 +173,6 @@
   .meta { font-size: 12px; color: var(--muted); font-family: var(--mono); }
   .cycle-tag { color: var(--warn); font-weight: 700; font-size: 12px; font-family: var(--mono); }
 
-  /* tree renderer */
   .tree { font-family: var(--mono); font-size: 14px; }
   .tree ul { list-style: none; margin: 0; padding-left: 20px; border-left: 1px dashed var(--line); }
   .tree > ul { padding-left: 4px; border-left: none; }
@@ -236,14 +231,9 @@ Z->X"></textarea>
   </div>
 
 <script>
-  // ---- Configure your API base URL here ---------------------------------
-  // When deployed, set this to your hosted backend, e.g.
-  //   "https://your-api.onrender.com"
-  // Leave as "" to call a same-origin /api/graph (useful for local testing
-  // or when frontend + API share a host like Vercel).
-  const API_BASE = "";
+
+  const API_BASE = "https://full-stack-challenge-1-7d27.onrender.com";
   const ENDPOINT = (API_BASE || "") + "/api/graph";
-  // -----------------------------------------------------------------------
 
   document.getElementById("endpointNote").textContent = "→ POST " + ENDPOINT;
   document.getElementById("footEndpoint").textContent = ENDPOINT;
@@ -259,7 +249,7 @@ Z->X"></textarea>
   const $ = (id) => document.getElementById(id);
 
   function parseEdges(text) {
-    // Split on newlines and commas, keep raw tokens (server trims & validates).
+
     return text
       .split(/[\n,]/)
       .map((s) => s.replace(/\s+$/,'').replace(/^\s+/,''))
@@ -275,7 +265,7 @@ Z->X"></textarea>
   function clearError() { $("alert").classList.remove("show"); }
 
   function renderTree(treeObj) {
-    // treeObj is like { A: { B: {...}, C: {...} } }
+
     const build = (obj) => {
       const keys = Object.keys(obj);
       if (keys.length === 0) return "";
@@ -295,20 +285,17 @@ Z->X"></textarea>
     clearError();
     $("results").classList.add("show");
 
-    // Identity
     $("identity").innerHTML = `
       <div class="id-cell"><div class="k">user_id</div><div class="v">${data.user_id ?? "—"}</div></div>
       <div class="id-cell"><div class="k">email_id</div><div class="v">${data.email_id ?? "—"}</div></div>
       <div class="id-cell"><div class="k">enrollment</div><div class="v">${data.enrollment_number ?? "—"}</div></div>`;
 
-    // Summary
     const s = data.summary || {};
     $("summary").innerHTML = `
       <div class="chip">Trees <b>${s.total_trees ?? 0}</b></div>
       <div class="chip">Cycles <b>${s.total_cycles ?? 0}</b></div>
       <div class="chip">Largest root <b>${s.largest_tree_root || "—"}</b></div>`;
 
-    // Hierarchies
     const hWrap = $("hierarchies");
     hWrap.innerHTML = "";
     (data.hierarchies || []).forEach((h) => {
@@ -331,7 +318,6 @@ Z->X"></textarea>
       hWrap.innerHTML = '<div class="meta">No hierarchies.</div>';
     }
 
-    // Invalid + duplicates
     const inv = data.invalid_entries || [];
     $("invalid").textContent = inv.length ? inv.map(JSON.stringify).join("  ") : "none";
     const dup = data.duplicate_edges || [];
